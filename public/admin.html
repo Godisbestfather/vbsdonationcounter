@@ -131,6 +131,48 @@
       font-size: 2rem;
       margin-bottom: 8px;
     }
+
+    .password-field {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .password-field input {
+      padding-right: 44px;
+    }
+
+    .toggle-password {
+      position: absolute;
+      right: 4px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      border: 0;
+      border-radius: 8px;
+      background: transparent;
+      color: #64748b;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+    }
+
+    .toggle-password:hover {
+      background: #f1f5f9;
+      color: #0f172a;
+    }
+
+    .toggle-password svg {
+      width: 20px;
+      height: 20px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
   </style>
 </head>
 <body>
@@ -142,13 +184,33 @@
     <form id="loginForm">
       <div class="row">
         <label for="loginPassword">Password</label>
-        <input
-          id="loginPassword"
-          type="password"
-          placeholder="Admin password"
-          autocomplete="current-password"
-          required
-        />
+        <div class="password-field">
+          <input
+            id="loginPassword"
+            type="password"
+            placeholder="Admin password"
+            autocomplete="current-password"
+            required
+          />
+          <button
+            type="button"
+            class="toggle-password"
+            id="togglePassword"
+            aria-label="Show password"
+            aria-pressed="false"
+          >
+            <svg class="icon-eye" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+            <svg class="icon-eye-off hidden" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-6.5 0-10-7-10-7a18.45 18.45 0 0 1 5.06-5.94"></path>
+              <path d="M9.9 4.24A10.94 10.94 0 0 1 12 5c6.5 0 10 7 10 7a18.5 18.5 0 0 1-2.16 3.19"></path>
+              <path d="M1 1l22 22"></path>
+              <path d="M14.12 14.12a3 3 0 0 1-4.24-4.24"></path>
+            </svg>
+          </button>
+        </div>
       </div>
       <button type="submit" class="full">Unlock</button>
     </form>
@@ -188,6 +250,7 @@
     const adminScreen = document.getElementById("adminScreen");
     const loginForm = document.getElementById("loginForm");
     const loginPassword = document.getElementById("loginPassword");
+    const togglePassword = document.getElementById("togglePassword");
     const loginStatus = document.getElementById("loginStatus");
     const teamSelect = document.getElementById("teamId");
     const form = document.getElementById("donateForm");
@@ -238,12 +301,22 @@
     }
 
     async function verifyPassword(password) {
-      const response = await fetch("/api/admin/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password })
-      });
-      return response.ok;
+      try {
+        const response = await fetch("/api/admin/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ password })
+        });
+
+        if (response.ok) return true;
+        if (response.status === 401) return false;
+
+        showLogin("Login failed. Please try again in a moment.");
+        return false;
+      } catch {
+        showLogin("Could not reach the server. Check your connection.");
+        return false;
+      }
     }
 
     async function apiPost(url, body) {
@@ -292,7 +365,16 @@
 
     loginForm.addEventListener("submit", async (event) => {
       event.preventDefault();
-      await unlockAdmin(loginPassword.value);
+      await unlockAdmin(loginPassword.value.trim());
+    });
+
+    togglePassword.addEventListener("click", () => {
+      const showing = loginPassword.type === "text";
+      loginPassword.type = showing ? "password" : "text";
+      togglePassword.setAttribute("aria-label", showing ? "Show password" : "Hide password");
+      togglePassword.setAttribute("aria-pressed", showing ? "false" : "true");
+      togglePassword.querySelector(".icon-eye").classList.toggle("hidden", !showing);
+      togglePassword.querySelector(".icon-eye-off").classList.toggle("hidden", showing);
     });
 
     form.addEventListener("submit", async (event) => {

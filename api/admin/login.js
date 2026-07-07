@@ -1,4 +1,4 @@
-const { isAuthorized, unauthorizedResponse } = require("../lib/auth");
+const { isAuthorized, unauthorizedResponse } = require("../../lib/auth");
 
 module.exports = async (req, res) => {
   if (req.method !== "POST") {
