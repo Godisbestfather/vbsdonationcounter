@@ -43,6 +43,21 @@ app.get("/api/state", async (_req, res) => {
   }
 });
 
+app.post("/api/admin/login", async (req, res) => {
+  res.set("Cache-Control", "no-store");
+
+  const { password } = req.body || {};
+  if (!password || typeof password !== "string") {
+    return res.status(400).json({ error: "Password is required." });
+  }
+
+  if (!isAuthorized({ headers: { "x-staff-secret": password } })) {
+    return unauthorizedResponse(res);
+  }
+
+  res.json({ ok: true });
+});
+
 app.post("/api/donate", async (req, res) => {
   if (!isAuthorized(req)) {
     return unauthorizedResponse(res);

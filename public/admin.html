@@ -64,8 +64,14 @@
     }
 
     input {
-      flex: 1;
+      width: 100%;
       border: 1px solid #cbd5e1;
+      box-sizing: border-box;
+    }
+
+    .controls input {
+      flex: 1;
+      width: auto;
     }
 
     select {
@@ -81,9 +87,20 @@
       cursor: pointer;
     }
 
+    button.full {
+      width: 100%;
+    }
+
     .reset {
       margin-top: 16px;
       background: #ef4444;
+      width: 100%;
+    }
+
+    .logout {
+      margin-top: 12px;
+      background: #e2e8f0;
+      color: #334155;
       width: 100%;
     }
 
@@ -94,25 +111,60 @@
       font-weight: 600;
     }
 
-    .auth-row {
+    .status.error {
+      color: #dc2626;
+    }
+
+    .hidden {
       display: none;
     }
 
-    .auth-row.visible {
-      display: grid;
+    .admin-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 6px;
+    }
+
+    .lock-icon {
+      font-size: 2rem;
+      margin-bottom: 8px;
     }
   </style>
 </head>
 <body>
-  <div class="panel">
-    <h1>Staff Donation Entry</h1>
-    <p>Add donations here. The main display updates automatically.</p>
+  <div class="panel" id="loginScreen">
+    <div class="lock-icon" aria-hidden="true">🔒</div>
+    <h1>Staff Login</h1>
+    <p>Enter the admin password to add donations.</p>
+
+    <form id="loginForm">
+      <div class="row">
+        <label for="loginPassword">Password</label>
+        <input
+          id="loginPassword"
+          type="password"
+          placeholder="Admin password"
+          autocomplete="current-password"
+          required
+        />
+      </div>
+      <button type="submit" class="full">Unlock</button>
+    </form>
+
+    <div class="status error hidden" id="loginStatus"></div>
+  </div>
+
+  <div class="panel hidden" id="adminScreen">
+    <div class="admin-header">
+      <div>
+        <h1>Staff Donation Entry</h1>
+        <p>Add donations here. The main display updates automatically.</p>
+      </div>
+    </div>
 
     <form id="donateForm">
-      <div class="row auth-row" id="authRow">
-        <label for="staffSecret">Staff secret</label>
-        <input id="staffSecret" type="password" placeholder="Enter staff secret" autocomplete="current-password" />
-      </div>
       <div class="row">
         <label for="teamId">Team</label>
         <select id="teamId" required></select>
@@ -127,16 +179,21 @@
     </form>
 
     <button class="reset" id="resetBtn" type="button">Reset all teams</button>
+    <button class="logout" id="logoutBtn" type="button">Log out</button>
     <div class="status" id="status"></div>
   </div>
 
   <script>
+    const loginScreen = document.getElementById("loginScreen");
+    const adminScreen = document.getElementById("adminScreen");
+    const loginForm = document.getElementById("loginForm");
+    const loginPassword = document.getElementById("loginPassword");
+    const loginStatus = document.getElementById("loginStatus");
     const teamSelect = document.getElementById("teamId");
     const form = document.getElementById("donateForm");
     const status = document.getElementById("status");
     const resetBtn = document.getElementById("resetBtn");
-    const authRow = document.getElementById("authRow");
-    const staffSecretInput = document.getElementById("staffSecret");
+    const logoutBtn = document.getElementById("logoutBtn");
 
     const currency = new Intl.NumberFormat("en-US", {
       style: "currency",
@@ -145,22 +202,48 @@
       maximumFractionDigits: 2
     });
 
+    const SESSION_KEY = "vbsStaffSecret";
     let requiresAuth = false;
+    let staffSecret = "";
 
-    function getStaffSecret() {
-      return staffSecretInput.value.trim() || sessionStorage.getItem("vbsStaffSecret") || "";
+    function setStaffSecret(secret) {
+      staffSecret = secret;
+      sessionStorage.setItem(SESSION_KEY, secret);
     }
 
-    function rememberStaffSecret() {
-      const secret = staffSecretInput.value.trim();
-      if (secret) {
-        sessionStorage.setItem("vbsStaffSecret", secret);
-      }
+    function clearStaffSecret() {
+      staffSecret = "";
+      sessionStorage.removeItem(SESSION_KEY);
     }
 
     function authHeaders() {
       if (!requiresAuth) return {};
-      return { "X-Staff-Secret": getStaffSecret() };
+      return { "X-Staff-Secret": staffSecret };
+    }
+
+    function showLogin(message = "") {
+      loginScreen.classList.remove("hidden");
+      adminScreen.classList.add("hidden");
+      loginStatus.textContent = message;
+      loginStatus.classList.toggle("hidden", !message);
+      loginPassword.value = "";
+      loginPassword.focus();
+    }
+
+    function showAdmin() {
+      loginScreen.classList.add("hidden");
+      adminScreen.classList.remove("hidden");
+      loginStatus.classList.add("hidden");
+      status.textContent = "";
+    }
+
+    async function verifyPassword(password) {
+      const response = await fetch("/api/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password })
+      });
+      return response.ok;
     }
 
     async function apiPost(url, body) {
@@ -175,15 +258,9 @@
     }
 
     async function loadConfig() {
-      const response = await fetch("/api/config");
+      const response = await fetch("/api/config", { cache: "no-store" });
       const config = await response.json();
       requiresAuth = config.requiresAuth;
-      authRow.classList.toggle("visible", requiresAuth);
-
-      const savedSecret = sessionStorage.getItem("vbsStaffSecret");
-      if (savedSecret) {
-        staffSecretInput.value = savedSecret;
-      }
     }
 
     async function loadTeams() {
@@ -194,6 +271,30 @@
         .join("");
     }
 
+    async function unlockAdmin(password) {
+      if (!requiresAuth) {
+        showAdmin();
+        await loadTeams();
+        return true;
+      }
+
+      const ok = await verifyPassword(password);
+      if (!ok) {
+        showLogin("Wrong password. Try again.");
+        return false;
+      }
+
+      setStaffSecret(password);
+      showAdmin();
+      await loadTeams();
+      return true;
+    }
+
+    loginForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      await unlockAdmin(loginPassword.value);
+    });
+
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
       const teamId = teamSelect.value;
@@ -202,47 +303,69 @@
       const response = await apiPost("/api/donate", { teamId, amount });
 
       if (response.status === 401) {
-        status.textContent = "Invalid staff secret.";
-        status.style.color = "#dc2626";
+        clearStaffSecret();
+        showLogin("Session expired. Please log in again.");
         return;
       }
 
       if (!response.ok) {
         status.textContent = "Could not add donation.";
-        status.style.color = "#dc2626";
+        status.className = "status error";
         return;
       }
 
       document.getElementById("amount").value = "";
-      rememberStaffSecret();
-      status.style.color = "#059669";
+      status.className = "status";
       status.textContent = "Donation added!";
       await loadTeams();
     });
 
     resetBtn.addEventListener("click", async () => {
       if (!confirm("Reset all team totals to $0?")) return;
+
       const response = await apiPost("/api/reset", {});
 
       if (response.status === 401) {
-        status.textContent = "Invalid staff secret.";
-        status.style.color = "#dc2626";
+        clearStaffSecret();
+        showLogin("Session expired. Please log in again.");
         return;
       }
 
       if (!response.ok) {
         status.textContent = "Could not reset teams.";
-        status.style.color = "#dc2626";
+        status.className = "status error";
         return;
       }
 
-      rememberStaffSecret();
-      status.style.color = "#059669";
+      status.className = "status";
       status.textContent = "All teams reset.";
       await loadTeams();
     });
 
-    loadConfig().then(loadTeams);
+    logoutBtn.addEventListener("click", () => {
+      clearStaffSecret();
+      showLogin();
+    });
+
+    async function init() {
+      await loadConfig();
+
+      if (!requiresAuth) {
+        showAdmin();
+        await loadTeams();
+        logoutBtn.classList.add("hidden");
+        return;
+      }
+
+      const savedSecret = sessionStorage.getItem(SESSION_KEY);
+      if (savedSecret && await unlockAdmin(savedSecret)) {
+        return;
+      }
+
+      showLogin();
+    }
+
+    init();
 
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
