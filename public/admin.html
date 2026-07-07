@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#7dd3fc" />
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+  <title>VBS Staff — Add Donations</title>
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 24px;
+      font-family: "SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f8fafc;
+      color: #0f172a;
+    }
+
+    .panel {
+      max-width: 520px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+    }
+
+    h1 {
+      margin: 0 0 6px;
+      font-size: 1.4rem;
+    }
+
+    p {
+      margin: 0 0 20px;
+      color: #64748b;
+    }
+
+    .row {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 14px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .row:last-of-type {
+      border-bottom: 0;
+    }
+
+    label {
+      font-weight: 700;
+    }
+
+    .controls {
+      display: flex;
+      gap: 8px;
+    }
+
+    input, select, button {
+      font: inherit;
+      border-radius: 10px;
+      padding: 10px 12px;
+    }
+
+    input {
+      flex: 1;
+      border: 1px solid #cbd5e1;
+    }
+
+    select {
+      width: 100%;
+      border: 1px solid #cbd5e1;
+    }
+
+    button {
+      border: 0;
+      background: #0ea5e9;
+      color: #fff;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .reset {
+      margin-top: 16px;
+      background: #ef4444;
+      width: 100%;
+    }
+
+    .status {
+      margin-top: 12px;
+      min-height: 1.2em;
+      color: #059669;
+      font-weight: 600;
+    }
+
+    .auth-row {
+      display: none;
+    }
+
+    .auth-row.visible {
+      display: grid;
+    }
+  </style>
+</head>
+<body>
+  <div class="panel">
+    <h1>Staff Donation Entry</h1>
+    <p>Add donations here. The main display updates automatically.</p>
+
+    <form id="donateForm">
+      <div class="row auth-row" id="authRow">
+        <label for="staffSecret">Staff secret</label>
+        <input id="staffSecret" type="password" placeholder="Enter staff secret" autocomplete="current-password" />
+      </div>
+      <div class="row">
+        <label for="teamId">Team</label>
+        <select id="teamId" required></select>
+      </div>
+      <div class="row">
+        <label for="amount">Amount ($)</label>
+        <div class="controls">
+          <input id="amount" type="number" min="0.01" step="0.01" placeholder="25.00" required />
+          <button type="submit">Add</button>
+        </div>
+      </div>
+    </form>
+
+    <button class="reset" id="resetBtn" type="button">Reset all teams</button>
+    <div class="status" id="status"></div>
+  </div>
+
+  <script>
+    const teamSelect = document.getElementById("teamId");
+    const form = document.getElementById("donateForm");
+    const status = document.getElementById("status");
+    const resetBtn = document.getElementById("resetBtn");
+    const authRow = document.getElementById("authRow");
+    const staffSecretInput = document.getElementById("staffSecret");
+
+    const currency = new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+
+    let requiresAuth = false;
+
+    function getStaffSecret() {
+      return staffSecretInput.value.trim() || sessionStorage.getItem("vbsStaffSecret") || "";
+    }
+
+    function rememberStaffSecret() {
+      const secret = staffSecretInput.value.trim();
+      if (secret) {
+        sessionStorage.setItem("vbsStaffSecret", secret);
+      }
+    }
+
+    function authHeaders() {
+      if (!requiresAuth) return {};
+      return { "X-Staff-Secret": getStaffSecret() };
+    }
+
+    async function apiPost(url, body) {
+      return fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...authHeaders()
+        },
+        body: JSON.stringify(body)
+      });
+    }
+
+    async function loadConfig() {
+      const response = await fetch("/api/config");
+      const config = await response.json();
+      requiresAuth = config.requiresAuth;
+      authRow.classList.toggle("visible", requiresAuth);
+
+      const savedSecret = sessionStorage.getItem("vbsStaffSecret");
+      if (savedSecret) {
+        staffSecretInput.value = savedSecret;
+      }
+    }
+
+    async function loadTeams() {
+      const response = await fetch("/api/state");
+      const state = await response.json();
+      teamSelect.innerHTML = state.teams
+        .map((team) => `<option value="${team.id}">${team.emoji} ${team.name} (${currency.format(team.total)})</option>`)
+        .join("");
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const teamId = teamSelect.value;
+      const amount = Number(document.getElementById("amount").value);
+
+      const response = await apiPost("/api/donate", { teamId, amount });
+
+      if (response.status === 401) {
+        status.textContent = "Invalid staff secret.";
+        status.style.color = "#dc2626";
+        return;
+      }
+
+      if (!response.ok) {
+        status.textContent = "Could not add donation.";
+        status.style.color = "#dc2626";
+        return;
+      }
+
+      document.getElementById("amount").value = "";
+      rememberStaffSecret();
+      status.style.color = "#059669";
+      status.textContent = "Donation added!";
+      await loadTeams();
+    });
+
+    resetBtn.addEventListener("click", async () => {
+      if (!confirm("Reset all team totals to $0?")) return;
+      const response = await apiPost("/api/reset", {});
+
+      if (response.status === 401) {
+        status.textContent = "Invalid staff secret.";
+        status.style.color = "#dc2626";
+        return;
+      }
+
+      if (!response.ok) {
+        status.textContent = "Could not reset teams.";
+        status.style.color = "#dc2626";
+        return;
+      }
+
+      rememberStaffSecret();
+      status.style.color = "#059669";
+      status.textContent = "All teams reset.";
+      await loadTeams();
+    });
+
+    loadConfig().then(loadTeams);
+
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("/sw.js").catch(() => {});
+      });
+    }
+  </script>
+</body>
+</html>

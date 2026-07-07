@@ -1,0 +1,715 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#7dd3fc" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="VBS Race" />
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+  <title>VBS Donation Race ☀️</title>
+  <style>
+    @font-face {
+      font-family: "Apfel Grotezk";
+      font-style: normal;
+      font-display: swap;
+      font-weight: 400;
+      src: url(https://cdn.jsdelivr.net/fontsource/fonts/apfel-grotezk@latest/latin-400-normal.woff2) format("woff2");
+    }
+
+    @font-face {
+      font-family: "Apfel Grotezk";
+      font-style: normal;
+      font-display: swap;
+      font-weight: 700;
+      src: url(https://cdn.jsdelivr.net/fontsource/fonts/apfel-grotezk@latest/latin-700-normal.woff2) format("woff2");
+    }
+
+    :root {
+      --sky: #7dd3fc;
+      --sun: #fde047;
+      --sand: #fef3c7;
+      --text: #1e3a5f;
+      --white: #ffffff;
+      --page-max: min(96vw, 1400px);
+      --page-pad-y: clamp(8px, 1.5vh, 16px);
+      --page-pad-x: clamp(12px, 2vw, 24px);
+      --title-size: clamp(1.35rem, 3.8vh, 2.75rem);
+      --subtitle-size: clamp(0.75rem, 1.8vh, 1.05rem);
+      --badge-size: clamp(0.65rem, 1.5vh, 0.85rem);
+      --team-gap: clamp(6px, 1vh, 12px);
+      --team-radius: clamp(14px, 2vh, 22px);
+      --team-border: clamp(2px, 0.35vh, 3px);
+      --footer-size: clamp(0.72rem, 1.6vh, 0.9rem);
+    }
+
+    html,
+    body {
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      color: var(--text);
+      font-family: "Apfel Grotezk", sans-serif;
+      background: linear-gradient(180deg, #7dd3fc 0%, #bae6fd 35%, #fef08a 70%, #fde68a 100%);
+      overscroll-behavior: none;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    .sky {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .sun {
+      position: absolute;
+      top: 28px;
+      right: 36px;
+      width: 88px;
+      height: 88px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #fff9c4, var(--sun) 55%, #facc15);
+      box-shadow: 0 0 0 12px rgba(253, 224, 71, 0.25), 0 0 60px rgba(250, 204, 21, 0.45);
+      animation: pulse 3s ease-in-out infinite;
+    }
+
+    .cloud {
+      position: absolute;
+      background: rgba(255, 255, 255, 0.92);
+      border-radius: 999px;
+      filter: drop-shadow(0 6px 12px rgba(30, 58, 95, 0.08));
+      animation: float 8s ease-in-out infinite;
+    }
+
+    .cloud::before,
+    .cloud::after {
+      content: "";
+      position: absolute;
+      background: inherit;
+      border-radius: inherit;
+    }
+
+    .cloud-1 {
+      width: 90px;
+      height: 34px;
+      top: 70px;
+      left: 8%;
+      animation-delay: 0s;
+    }
+
+    .cloud-1::before {
+      width: 44px;
+      height: 44px;
+      top: -22px;
+      left: 14px;
+    }
+
+    .cloud-1::after {
+      width: 56px;
+      height: 56px;
+      top: -30px;
+      right: 10px;
+    }
+
+    .cloud-2 {
+      width: 110px;
+      height: 38px;
+      top: 130px;
+      right: 18%;
+      animation-delay: -2s;
+    }
+
+    .cloud-2::before {
+      width: 50px;
+      height: 50px;
+      top: -26px;
+      left: 18px;
+    }
+
+    .cloud-2::after {
+      width: 62px;
+      height: 62px;
+      top: -34px;
+      right: 12px;
+    }
+
+    .bubble {
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.35);
+      border: 2px solid rgba(255, 255, 255, 0.5);
+      animation: rise 12s linear infinite;
+    }
+
+    .bubble:nth-child(4) { width: 18px; height: 18px; left: 12%; bottom: -20px; animation-duration: 14s; }
+    .bubble:nth-child(5) { width: 12px; height: 12px; left: 28%; bottom: -20px; animation-duration: 11s; animation-delay: -3s; }
+    .bubble:nth-child(6) { width: 22px; height: 22px; left: 55%; bottom: -20px; animation-duration: 16s; animation-delay: -6s; }
+    .bubble:nth-child(7) { width: 14px; height: 14px; left: 78%; bottom: -20px; animation-duration: 13s; animation-delay: -1s; }
+
+    .page {
+      position: relative;
+      z-index: 1;
+      width: var(--page-max);
+      height: 100dvh;
+      max-height: 100dvh;
+      margin: 0 auto;
+      padding: var(--page-pad-y) var(--page-pad-x);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .header {
+      flex-shrink: 0;
+      text-align: center;
+      margin-bottom: clamp(4px, 0.8vh, 10px);
+    }
+
+    .badge {
+      display: inline-block;
+      background: rgba(255, 255, 255, 0.75);
+      border: 2px solid #fff;
+      border-radius: 999px;
+      padding: clamp(4px, 0.8vh, 6px) clamp(10px, 1.5vw, 14px);
+      font-size: var(--badge-size);
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #0369a1;
+      margin-bottom: clamp(2px, 0.5vh, 6px);
+      backdrop-filter: blur(6px);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: var(--title-size);
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+      color: #0c4a6e;
+      text-shadow: 0 3px 0 rgba(255, 255, 255, 0.55);
+    }
+
+    .subtitle {
+      margin: clamp(2px, 0.4vh, 4px) 0 0;
+      font-size: var(--subtitle-size);
+      font-weight: 600;
+      color: #155e75;
+    }
+
+    .teams {
+      flex: 1;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-rows: repeat(3, minmax(0, 1fr));
+      gap: var(--team-gap);
+    }
+
+    .team {
+      position: relative;
+      container-type: size;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: min(2.5cqh, 10px);
+      min-height: 0;
+      background: rgba(255, 255, 255, 0.88);
+      border: var(--team-border) solid #fff;
+      border-radius: var(--team-radius);
+      padding: min(3.5cqh, 16px) min(4cqw, 18px);
+      box-shadow: 0 14px 30px rgba(12, 74, 110, 0.12);
+      backdrop-filter: blur(8px);
+      transition: transform 0.35s ease;
+    }
+
+    .team.leader {
+      box-shadow: 0 18px 36px rgba(12, 74, 110, 0.18);
+      outline: 3px solid #fbbf24;
+      outline-offset: -3px;
+    }
+
+    .team-head {
+      display: flex;
+      align-items: center;
+      justify-content: stretch;
+      flex: 1.25 1 0;
+      min-height: 0;
+      width: 100%;
+    }
+
+    .team-identity {
+      display: flex;
+      align-items: center;
+      gap: min(3.5cqh, 14px);
+      min-width: 0;
+      flex: 1;
+      height: 100%;
+    }
+
+    .team-emoji {
+      flex-shrink: 0;
+      width: min(36cqh, 30cqw);
+      height: min(36cqh, 30cqw);
+      display: grid;
+      place-items: center;
+      font-size: min(20cqh, 18cqw);
+      border-radius: min(4cqh, 18px);
+      background: #fff;
+      border: min(0.5cqh, 3px) solid currentColor;
+      box-shadow: 0 min(1cqh, 5px) 0 rgba(0, 0, 0, 0.08);
+    }
+
+    .team-name {
+      margin: 0;
+      font-size: min(14cqh, 8cqw);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.05;
+    }
+
+    .team-title {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: min(2cqh, 8px);
+      min-width: 0;
+      flex: 1;
+      height: 100%;
+    }
+
+    .rank-badge {
+      display: inline-grid;
+      grid-template-columns: 1.35em 1fr;
+      align-items: center;
+      gap: min(1cqh, 6px);
+      width: min(58cqw, 12rem);
+      font-size: min(10cqh, 5.5cqw);
+      font-weight: 800;
+      border-radius: 999px;
+      padding: min(2cqh, 8px) min(2.8cqw, 14px) min(2cqh, 8px) min(2.2cqw, 12px);
+      white-space: nowrap;
+      border: min(0.35cqh, 2px) solid transparent;
+    }
+
+    .rank-medal {
+      display: block;
+      width: 1.35em;
+      text-align: center;
+      line-height: 1;
+    }
+
+    .rank-text {
+      display: block;
+      text-align: left;
+    }
+
+    .rank-badge.rank-1 {
+      color: #92400e;
+      background: linear-gradient(135deg, #fef3c7, #fde68a);
+      border-color: #fbbf24;
+    }
+
+    .rank-badge.rank-2 {
+      color: #475569;
+      background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+      border-color: #cbd5e1;
+    }
+
+    .rank-badge.rank-3 {
+      color: #9a3412;
+      background: linear-gradient(135deg, #ffedd5, #fed7aa);
+      border-color: #fb923c;
+    }
+
+    .rank-badge.rank-4 {
+      color: #5b21b6;
+      background: linear-gradient(135deg, #f3e8ff, #e9d5ff);
+      border-color: #c4b5fd;
+    }
+
+    .rank-badge.rank-5 {
+      color: #0f766e;
+      background: linear-gradient(135deg, #ccfbf1, #99f6e4);
+      border-color: #5eead4;
+    }
+
+    .rank-badge.rank-6 {
+      color: #475569;
+      background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+      border-color: #94a3b8;
+    }
+
+    .rank-badge.hidden {
+      display: none;
+    }
+
+    .progress-track {
+      flex: 1 1 0;
+      position: relative;
+      container-type: size;
+      width: 100%;
+      min-height: min(18cqh, 32px);
+      height: min(26cqh, 100%);
+      max-height: min(30cqh, 72px);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.9);
+      border: min(0.45cqh, 3px) solid rgba(30, 58, 95, 0.08);
+      overflow: hidden;
+      box-shadow: inset 0 min(0.5cqh, 3px) min(1.2cqh, 8px) rgba(30, 58, 95, 0.08);
+      align-self: stretch;
+    }
+
+    .progress-fill {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 0%;
+      height: 100%;
+      border-radius: 999px;
+      transition: width 0.9s cubic-bezier(0.34, 1.2, 0.64, 1);
+      box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.12);
+      overflow: hidden;
+    }
+
+    .progress-fill::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: calc(100% + 34px);
+      height: 100%;
+      border-radius: inherit;
+      opacity: 0.35;
+      background: repeating-linear-gradient(
+        -45deg,
+        rgba(255, 255, 255, 0.65) 0 12px,
+        rgba(255, 255, 255, 0.15) 12px 24px
+      );
+      background-size: 34px 34px;
+      animation: waveFlow 1.4s linear infinite;
+      will-change: transform;
+    }
+
+    .progress-label {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      transform: translateX(0);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: min(25cqw, 88px);
+      text-align: center;
+      background: #fff;
+      color: #0f172a;
+      border-radius: 999px;
+      font-size: min(52cqh, 10cqw);
+      font-weight: 700;
+      line-height: 1;
+      padding: 0 min(3cqw, 12px);
+      white-space: nowrap;
+      box-shadow: 0 min(0.8cqh, 4px) min(1.8cqh, 10px) rgba(15, 23, 42, 0.18);
+      transition: left 0.9s cubic-bezier(0.34, 1.2, 0.64, 1), transform 0.9s cubic-bezier(0.34, 1.2, 0.64, 1);
+      pointer-events: none;
+      border: min(0.35cqh, 2px) solid #fff;
+      z-index: 2;
+      box-sizing: border-box;
+    }
+
+    .progress-label.on-liquid {
+      transform: translateX(-100%);
+    }
+
+    .progress-label.bump {
+      animation: bump 0.45s ease;
+    }
+
+    .progress-label.on-liquid.bump {
+      animation: bumpLiquid 0.45s ease;
+    }
+
+    .footer-note {
+      flex-shrink: 0;
+      margin-top: clamp(10px, 2vh, 28px);
+      padding-bottom: clamp(0px, 1.2vh, 20px);
+      text-align: center;
+      font-size: var(--footer-size);
+      font-weight: 700;
+      color: #0e7490;
+      text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6);
+    }
+
+    @media (min-height: 800px) {
+      .footer-note {
+        margin-top: clamp(20px, 3.5vh, 48px);
+        padding-bottom: clamp(8px, 2vh, 32px);
+      }
+    }
+
+    @media (min-height: 1000px) {
+      .footer-note {
+        margin-top: clamp(28px, 4.5vh, 64px);
+        padding-bottom: clamp(12px, 2.5vh, 40px);
+      }
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.06); }
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    @keyframes rise {
+      0% { transform: translateY(0); opacity: 0.7; }
+      100% { transform: translateY(-110vh); opacity: 0; }
+    }
+
+    @keyframes waveFlow {
+      from { transform: translateX(-34px); }
+      to { transform: translateX(0); }
+    }
+
+    @keyframes bump {
+      0%, 100% { transform: translateX(0) scale(1); }
+      50% { transform: translateX(0) scale(1.12); }
+    }
+
+    @keyframes bumpLiquid {
+      0%, 100% { transform: translateX(-100%) scale(1); }
+      50% { transform: translateX(-100%) scale(1.12); }
+    }
+
+    @media (max-width: 640px) {
+      :root {
+        --page-pad-x: 8px;
+        --team-gap: 6px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="sky" aria-hidden="true">
+    <div class="sun"></div>
+    <div class="cloud cloud-1"></div>
+    <div class="cloud cloud-2"></div>
+    <div class="bubble"></div>
+    <div class="bubble"></div>
+    <div class="bubble"></div>
+    <div class="bubble"></div>
+  </div>
+
+  <main class="page">
+    <header class="header">
+      <div class="badge">ALIC Summer VBS 2026</div>
+      <h1>Team Donation Race! 🏖️</h1>
+      <p class="subtitle">Which color team can fill up their bar the most?</p>
+    </header>
+
+    <section class="teams" id="teamBoard" aria-live="polite"></section>
+
+    <p class="footer-note">Remember, every gift counts! 🎉</p>
+  </main>
+
+  <script>
+    const currency = new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+
+    const board = document.getElementById("teamBoard");
+    const previousTotals = {};
+    let lastDomOrder = "";
+
+    const rankLabels = {
+      1: { medal: "🥇", text: "1st Place" },
+      2: { medal: "🥈", text: "2nd Place" },
+      3: { medal: "🥉", text: "3rd Place" },
+      4: { medal: "🏅", text: "4th Place" },
+      5: { medal: "🏅", text: "5th Place" },
+      6: { medal: "🏅", text: "6th Place" }
+    };
+
+    function setRankBadge(badge, rank) {
+      const label = rankLabels[rank] ?? { medal: "🏅", text: `${rank}th Place` };
+      badge.innerHTML = `
+        <span class="rank-medal" aria-hidden="true">${label.medal}</span>
+        <span class="rank-text">${label.text}</span>
+      `;
+    }
+
+    function getRankedTeams(teams) {
+      const sorted = [...teams].sort((a, b) => b.total - a.total || a.id.localeCompare(b.id));
+      let rank = 0;
+      let previousTotal = null;
+
+      return sorted.map((team, index) => {
+        if (team.total !== previousTotal) {
+          rank = index + 1;
+          previousTotal = team.total;
+        }
+        return { ...team, rank };
+      });
+    }
+
+    function fillPercent(total, fillMax) {
+      if (total <= 0) return 0;
+      if (total >= fillMax) return 100;
+      // Square-root curve: small gifts move the bar quickly, growth slows as totals rise.
+      // fillMax still means a full bar (100%).
+      return Math.pow(total / fillMax, 0.5) * 100;
+    }
+
+    function positionLabel(track, fill, label, total) {
+      const trackWidth = track.clientWidth;
+      const labelWidth = label.offsetWidth;
+
+      if (total <= 0) {
+        label.style.left = "0px";
+        label.classList.remove("on-liquid");
+        return;
+      }
+
+      const fillEdge = fill.offsetWidth;
+      let rightEdge = fillEdge;
+
+      if (rightEdge < labelWidth) {
+        rightEdge = Math.min(labelWidth, trackWidth);
+      } else if (rightEdge > trackWidth) {
+        rightEdge = trackWidth;
+      }
+
+      label.style.left = `${rightEdge}px`;
+      label.classList.add("on-liquid");
+    }
+
+    function bindFillTransition(fill, track, label, getTotal) {
+      if (fill.dataset.bound) return;
+      fill.dataset.bound = "true";
+
+      fill.addEventListener("transitionrun", () => {
+        const tick = () => {
+          positionLabel(track, fill, label, getTotal());
+          if (fill.dataset.animating === "true") {
+            requestAnimationFrame(tick);
+          }
+        };
+        fill.dataset.animating = "true";
+        requestAnimationFrame(tick);
+      });
+
+      fill.addEventListener("transitionend", () => {
+        fill.dataset.animating = "false";
+        positionLabel(track, fill, label, getTotal());
+      });
+    }
+
+    function renderTeams(state) {
+      const fillMax = state.fillMax ?? 750;
+      const rankedTeams = getRankedTeams(state.teams);
+      const hasDonations = rankedTeams.some((team) => team.total > 0);
+
+      rankedTeams.forEach((team) => {
+        let card = document.getElementById(`team-${team.id}`);
+
+        if (!card) {
+          card = document.createElement("article");
+          card.className = "team";
+          card.id = `team-${team.id}`;
+          card.style.color = team.color;
+          card.innerHTML = `
+            <div class="team-head">
+              <div class="team-identity">
+                <div class="team-emoji">${team.emoji}</div>
+                <div class="team-title">
+                  <h2 class="team-name">${team.name}</h2>
+                  <span class="rank-badge hidden" id="${team.id}-rank"></span>
+                </div>
+              </div>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill" id="${team.id}-fill" style="background:${team.color};"></div>
+              <span class="progress-label" id="${team.id}-label">${currency.format(0)}</span>
+            </div>
+          `;
+          board.appendChild(card);
+        }
+
+        const rankBadge = document.getElementById(`${team.id}-rank`);
+        setRankBadge(rankBadge, team.rank);
+        rankBadge.className = `rank-badge rank-${Math.min(team.rank, 6)}`;
+        rankBadge.classList.toggle("hidden", !hasDonations);
+
+        card.classList.toggle("leader", hasDonations && team.rank === 1);
+
+        const track = card.querySelector(".progress-track");
+        const fill = document.getElementById(`${team.id}-fill`);
+        const label = document.getElementById(`${team.id}-label`);
+
+        bindFillTransition(fill, track, label, () => team.total);
+
+        const nextPercent = `${fillPercent(team.total, fillMax)}%`;
+        if (fill.style.width !== nextPercent) {
+          fill.style.width = nextPercent;
+        }
+
+        label.textContent = currency.format(team.total);
+
+        if (previousTotals[team.id] !== team.total) {
+          positionLabel(track, fill, label, team.total);
+          requestAnimationFrame(() => {
+            positionLabel(track, fill, label, team.total);
+          });
+        }
+
+        if (previousTotals[team.id] !== undefined && previousTotals[team.id] !== team.total) {
+          label.classList.remove("bump");
+          void label.offsetWidth;
+          label.classList.add("bump");
+        }
+
+        previousTotals[team.id] = team.total;
+      });
+
+      const domOrder = rankedTeams.map((team) => team.id).join(",");
+      if (domOrder !== lastDomOrder) {
+        rankedTeams.forEach((team) => {
+          board.appendChild(document.getElementById(`team-${team.id}`));
+        });
+        lastDomOrder = domOrder;
+      }
+    }
+
+    async function refresh() {
+      try {
+        const response = await fetch("/api/state");
+        if (!response.ok) return;
+        const state = await response.json();
+        renderTeams(state);
+      } catch {
+        // server may be starting up
+      }
+    }
+
+    refresh();
+    setInterval(refresh, 2000);
+
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("/sw.js").catch(() => {});
+      });
+    }
+  </script>
+</body>
+</html>
