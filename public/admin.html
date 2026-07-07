@@ -449,11 +449,7 @@
 
     init();
 
-    if ("serviceWorker" in navigator) {
-      window.addEventListener("load", () => {
-        navigator.serviceWorker.register("/sw.js").catch(() => {});
-      });
-    }
+    // Admin should always use the network; skip service worker here.
   </script>
 </body>
 </html>
