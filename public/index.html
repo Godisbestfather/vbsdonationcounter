@@ -693,7 +693,7 @@
 
     async function refresh() {
       try {
-        const response = await fetch("/api/state");
+        const response = await fetch("/api/state", { cache: "no-store" });
         if (!response.ok) return;
         const state = await response.json();
         renderTeams(state);
@@ -707,7 +707,9 @@
 
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
-        navigator.serviceWorker.register("/sw.js").catch(() => {});
+        navigator.serviceWorker.register("/sw.js").then((registration) => {
+          registration.update();
+        }).catch(() => {});
       });
     }
   </script>

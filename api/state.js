@@ -1,6 +1,7 @@
 const { getState } = require("../lib/store");
 
 module.exports = async (_req, res) => {
+  res.setHeader("Cache-Control", "no-store");
   try {
     res.json(await getState());
   } catch (error) {

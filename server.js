@@ -25,13 +25,16 @@ app.get("/sw.js", (_req, res) => {
 app.use(express.static(PUBLIC_DIR));
 
 app.get("/api/config", (_req, res) => {
+  res.set("Cache-Control", "no-store");
   res.json({
+    version: "2026-07-07",
     requiresAuth: requiresStaffAuth(),
     storage: usesSupabase() ? "supabase" : "file"
   });
 });
 
 app.get("/api/state", async (_req, res) => {
+  res.set("Cache-Control", "no-store");
   try {
     res.json(await getState());
   } catch (error) {

@@ -187,7 +187,7 @@
     }
 
     async function loadTeams() {
-      const response = await fetch("/api/state");
+      const response = await fetch("/api/state", { cache: "no-store" });
       const state = await response.json();
       teamSelect.innerHTML = state.teams
         .map((team) => `<option value="${team.id}">${team.emoji} ${team.name} (${currency.format(team.total)})</option>`)
