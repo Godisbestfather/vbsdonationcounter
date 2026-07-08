@@ -2,7 +2,14 @@ const { isAuthorized, unauthorizedResponse } = require("../lib/auth");
 const { addDonation } = require("../lib/store");
 
 module.exports = async (req, res) => {
-  if (req.method !== "POST") {
+  res.setHeader("Allow", "POST, OPTIONS");
+  const method = String(req.method || "").toUpperCase();
+
+  if (method === "OPTIONS") {
+    return res.status(204).end();
+  }
+
+  if (method !== "POST") {
     return res.status(405).json({ error: "Method not allowed." });
   }
 

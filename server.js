@@ -43,7 +43,7 @@ app.get("/api/state", async (_req, res) => {
   }
 });
 
-app.post("/api/admin/login", async (req, res) => {
+app.post("/api/login", async (req, res) => {
   res.set("Cache-Control", "no-store");
 
   const { password } = req.body || {};
@@ -51,7 +51,7 @@ app.post("/api/admin/login", async (req, res) => {
     return res.status(400).json({ error: "Password is required." });
   }
 
-  if (!isAuthorized({ headers: { "x-staff-secret": password } })) {
+  if (!isAuthorized({ headers: { "x-staff-secret": password.trim() } })) {
     return unauthorizedResponse(res);
   }
 
